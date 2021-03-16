@@ -1,0 +1,9 @@
+/home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.log {
+    hourly
+    rotate 7
+    compress
+    missingok
+    notifempty
+    create 0644 YOUR-HASS-USER YOUR-HASS-USER
+    su YOUR-HASS-USER YOUR-HASS-USER
+}

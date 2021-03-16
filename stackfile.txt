@@ -1,0 +1,1 @@
+{"data": {"artist": "The Doors", "title": "Break on Through (to the Other Side)", "duration": 145, "contentId": "224", "contentType": "music"}, "time": {"timeStamp": 1615663256.439212}, "state": {"state": "playing", "mediaTrack": "0", "player": "forked-daapd server"}}

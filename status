@@ -1,0 +1,2 @@
+logrotate state -- version 2
+"/home/jhass/ha-scrobble/ha-scrobble.log" 2021-3-14-0:22:1

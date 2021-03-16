@@ -1,0 +1,4 @@
+*.log
+*.gz
+!/.gitignore
+.git
