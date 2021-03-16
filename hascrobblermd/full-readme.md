@@ -172,14 +172,15 @@ After scrobbling tracks you may wish to download your listening history.  Here a
 
 # Generating a Last.fm Session Key
 
-1. send an http get request to [http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=YOUR_API_KEY_HERE&format=json](http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=YOUR_API_KEY_HERE&format=json) - you can do this from a browser, use curl, python requests or httpx... whatever.  it will return json with {"token": "YOUR_API_TOKEN_HERE"}.  this is only good for 60 minutes.
-2. open a browser and log into last.fm if not already logged in.  In another browser tab, go to [http://www.last.fm/api/auth/?api_key=YOUR_API_KEY_HERE&token=YOUR_API_TOKEN_HERE](http://www.last.fm/api/auth/?api_key=YOUR_API_KEY_HERE&token=YOUR_API_TOKEN_HERE) - this will end up taking you to a page to grant authorization to use the application.
-3. build the following string:
+1. You can read all of this from the API documentation at https://www.last.fm/api/desktopauth, but i've put the salient bits below with a few explanatory bits/examples in a few spots.
+2. send an http get request to [http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=YOUR_API_KEY_HERE&format=json](http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=YOUR_API_KEY_HERE&format=json) - you can do this from a browser, use curl, python requests or httpx... whatever.  it will return json with {"token": "YOUR_API_TOKEN_HERE"}.  this is only good for 60 minutes.
+3. open a browser and log into last.fm if not already logged in.  In another browser tab, go to [http://www.last.fm/api/auth/?api_key=YOUR_API_KEY_HERE&token=YOUR_API_TOKEN_HERE](http://www.last.fm/api/auth/?api_key=YOUR_API_KEY_HERE&token=YOUR_API_TOKEN_HERE) - this will end up taking you to a page to grant authorization to use the application.
+4. build the following string:
    "api_keyYOUR_API_KEY_HEREmethodauth.getSessiontokenYOUR_API_TOKEN_HEREYOUR_API_SECRET_HERE" and then get the md5 hash of this.  You can do this in a few ways:
 	- from a shell: `echo -n "api_keyYOUR_API_KEY_HEREmethodauth.getSessiontokenYOUR_API_TOKEN_HEREYOUR_API_SECRET_HERE" | md5sum`
 	- from python3 - open python3 from shell, `import pylast` and then issue: `pylast.md5("api_keyYOUR_API_KEY_HEREmethodauth.getSessiontokenYOUR_API_TOKEN_HEREYOUR_API_SECRET_HERE")`
-both of these will yield a 32 character md5 hash of the above string.
-4. send an https post:
+both of these will yield a 32 character md5 hash of the above string.  This is your api_sig for use below.
+5. send an https post:
    e.g., from python3:
    ``` python
    import httpx
