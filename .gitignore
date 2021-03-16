@@ -2,3 +2,5 @@
 *.gz
 !/.gitignore
 .git
+stackfile.txt
+status
