@@ -88,7 +88,7 @@ The other thing you'll need is a last.fm API key - go to https://last.fm/api and
 
 	* If using nodered, here's a nodered flow you can use:
 
-![nodered-media-player-capture.png](../_resources/fdf27dd6980444c5b70b2c65d9a4c4e3.png)
+![nodered-media-player-capture.png](_resources/fdf27dd6980444c5b70b2c65d9a4c4e3.png)
 
 and it's associated json (this is scrubbed so you won't get my config nodes):
 ```json
