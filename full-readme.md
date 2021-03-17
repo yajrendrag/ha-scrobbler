@@ -1,5 +1,3 @@
-Introduction
-
 # Introduction
 
 I was looking for a project to help me learn/practice more python & I like to listen to music and scrobble to last.fm throughout the day.  The players I use are all integrations in hass, but one of them only scrobbled tracks from my own library and not from any streaming service and I wanted a single scrobbling solutiion and not one i'd have to select/manage player by player.  So, I decided to write my own.
@@ -16,29 +14,23 @@ The other thing you'll need is a last.fm API key - go to https://last.fm/api and
 
 * scrobbler code - ha-scrobble.py
 * scrobbler shell script - processmpd.sh - this will work with yaml based automation or node-red, flow based automation.
-* python 3 dependencies: pylast, httpx, json, time, sys, re, subprocess, datetime, shutil, SimpleNamespace from types, and BeautifulSoup from bs4
+* python 3 dependencies: pylast, httpx, json, time, sys, re, subprocess, datetime, shutil, SimpleNamespace from types, and BeautifulSoup from bs4.  requirements.txt contains the packages to install.
 
 ## Put things into place
 
-### Hass based Python setup
+### Automation
 
-* Put processmpd.sh in /home/YOUR-HASS-USER/.homeassistant/shell_commands.  Make it executable, `chmod +x processmpd.sh`.
-* create directory /home/YOUR-HASS-USER/ha-scrobble owned by the user running hass.
-* Put ha-scrobble.py in this directory and make it executable, `chmod +x ha-scrobble.py`.  Set file ownership to YOUR-HASS-USER, eg., `chown YOUR-HASS-USER:YOUR-HASS-USER /home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.py`
-* `touch /home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.log`.  Various events are logged & I left a lot of the logging intact in ha-scrobble.py, although some is commented out.  As long as you don't run into issues, you could comment it all out if you don't want deal with maintaining the log file (see below for logrotate).
-* `touch /home/YOUR-HASS-USER/ha-scrobble/stackfile.txt` owned by your hass user.  It's a stack of sorts - a file to hold the last track that was playing.
-* create a shell command in your hass configuration - here's an example:
-  `process_mpd_data: /home/YOUR-HASS-USER/.homeassistant/shell_commands/processmpd.sh {{ mpd_data }}` - regardless of node red or yaml automation this will pass the media event data to the processmpd.sh shell script to start the scrobbling activity.
-* edit lines 15-25 of ha-scrobbe.py and edit the entries for your last.fm account data (API_KEY, API_SECRET, SESSION_KEY, USER_NAME) and global data (logfile and stackfile paths, and the SUFFIX_LIST which is simply a list of suffixes for files in your music library, e.g., ".flac").
-* You'll need some automation in HA to extract media player events to feed the scrobbler.
-	* If using yaml automation, here's an example automation that will send the captured media player event data (in this case from forked_daapd_server - set this to match the media player you're using - you may be able to set multiple media players here) to your shell command:
-     ```yaml
+You'll need some automation in HA to extract media player events to feed the scrobbler and you'll the entity id(s) of the media players you're using.
+
+* If using yaml automation, here's an example automation that will send the captured media player event data (in this case from forked_daapd_server - set this to match the media player you're using - you may be able to set multiple media players here) to your shell command:
+
+```yaml
      - alias: 'capture media player events'
   trigger:
     platform: event
     event_type: state_changed
     event_data:
-      entity_id: media_player.forked_daapd_server
+      entity_id: media_player.forked_daapd_server # modify to match your media player
   condition:
     condition: template
     value_template: "{{ trigger.event.data['new_state']['state'] == 'playing' or trigger.event.data['old_state']['state'] == 'playing' }}"
@@ -84,47 +76,69 @@ The other thing you'll need is a last.fm API key - go to https://last.fm/api and
              "state_old": trigger.event.data['old_state']['state']
              } | to_json
           }}'
-     ```
+```
 
-	* If using nodered, here's a nodered flow you can use:
+* If using nodered, here's a nodered flow you can use:
 
-![nodered-media-player-capture.png](_resources/fdf27dd6980444c5b70b2c65d9a4c4e3.png)
+![nodered-media-player-capture.png](:/fdf27dd6980444c5b70b2c65d9a4c4e3)
 
 and it's associated json (this is scrubbed so you won't get my config nodes):
 ```json
 [{"id":"edd0c8b3.2d4b98","type":"api-call-service","z":"15a7ec87.0d5de3","name":"","server":"","version":1,"debugenabled":true,"service_domain":"shell_command","service":"process_mpd_data","entityId":"","data":"{\"mpd_data\":\"{{ payload }}\"}","dataType":"json","mergecontext":"","output_location":"payload","output_location_type":"msg","mustacheAltTags":false,"x":1560,"y":1340,"wires":[[]]},{"id":"cebc0403.8a92b8","type":"json","z":"15a7ec87.0d5de3","name":"","property":"payload","action":"str","pretty":false,"x":1270,"y":1340,"wires":[["edd0c8b3.2d4b98"]]},{"id":"3c1b8967.b0e386","type":"switch","z":"15a7ec87.0d5de3","name":"","property":"payload","propertyType":"msg","rules":[{"t":"nempty"}],"checkall":"false","repair":false,"outputs":1,"x":1110,"y":1340,"wires":[["cebc0403.8a92b8"]]},{"id":"b2b568a6.3d83f8","type":"debug","z":"15a7ec87.0d5de3","name":"","active":true,"tosidebar":true,"console":true,"tostatus":true,"complete":"payload","targetType":"msg","statusVal":"payload.mpd_data","statusType":"auto","x":1080,"y":1400,"wires":[]},{"id":"b375c8fb.982058","type":"function","z":"15a7ec87.0d5de3","name":"","func":"if (msg.payload['event']['new_state']['state'] != \"playing\" & msg.payload['event']['old_state']['state'] != \"playing\") {\n    msg.payload = {};\n} else {\n    msg.payload = {\n    \"old_state\": msg.payload['event']['old_state']['attributes'],\n    \"new_state\": msg.payload['event']['new_state']['attributes'],\n    \"time_new\": msg.payload['event']['new_state']['last_updated'],\n    \"time_old\": msg.payload['event']['old_state']['last_updated'],\n    \"state_new\": msg.payload['event']['new_state']['state'],\n    \"state_old\": msg.payload['event']['old_state']['state']\n    };\n}\nreturn msg;","outputs":1,"noerr":0,"initialize":"","finalize":"","x":900,"y":1340,"wires":[["3c1b8967.b0e386","b2b568a6.3d83f8"]]},{"id":"304af530.402d7a","type":"debug","z":"15a7ec87.0d5de3","name":"","active":true,"tosidebar":true,"console":true,"tostatus":true,"complete":"true","targetType":"full","statusVal":"payload.mpd_data","statusType":"auto","x":730,"y":1280,"wires":[]},{"id":"f859550b.28f4e8","type":"debug","z":"15a7ec87.0d5de3","name":"","active":true,"tosidebar":true,"console":true,"tostatus":true,"complete":"true","targetType":"full","statusVal":"payload.mpd_data","statusType":"auto","x":730,"y":1400,"wires":[]},{"id":"332d9c19.72a274","type":"switch","z":"15a7ec87.0d5de3","name":"","property":"payload.entity_id","propertyType":"msg","rules":[{"t":"cont","v":"media_player.mpd","vt":"str"},{"t":"cont","v":"media_player.forked_daapd_server","vt":"str"}],"checkall":"false","repair":false,"outputs":2,"x":610,"y":1340,"wires":[["b375c8fb.982058","304af530.402d7a"],["f859550b.28f4e8","b375c8fb.982058"]]},{"id":"26ae070f.9c2a18","type":"server-events","z":"15a7ec87.0d5de3","name":"","server":"","event_type":"state_changed","exposeToHomeAssistant":false,"haConfig":[{"property":"name","value":""},{"property":"icon","value":""}],"waitForRunning":true,"x":320,"y":1340,"wires":[["332d9c19.72a274"]]}]
 ```
 
-### Python outside of Hass
+### Python Setup
 
-If you wish to run this outside of hass then you need to modify the shell script, processmpd.sh, effectively breaking it up into multiple scripts.  One script is the direct object of the hass shell command and simply writes the media event data to a file, e.g., ha-scrobble/mpd-events.txt  The second script would read the last line of mpd-events.txt and call the ha-scrobble.py function.  The trick to this is to figure out how to trigger the second script outside of hass.  One way to do that is to link your hass ha-scrobble folder to a folder on the host.  If, for example, you're running hass in a container (which most non homeassistant-core implementations seem to do), you could map the ha-scrobble folder in the hass container to a host folder by using a -v option on your hass container run command, e.g., `-v /home/user/ha-scrobble:/home/hass-user/ha-scrobble`.  Then inotifywait could be used to monitor that file for changes on the host side.  Install inotifywait tools - e.g., on ubuntu/debian `sudo apt update -y && sudo apt install -y inotify-tools`.  Then you need a (3rd) script like this:
+You can choose to run this as a Hass based python environment - i.e., in your hass machine (a bare metal or a container, in a separate venv or using the same or separate version of python in that machine) - OR,  you can opt to run in a python environment outside of your hass machine, ie, pass the media player event data to another machine.  The latter use case includes running on the host of the machine on which hass is running as a container.
+
+#### Hass based Python setup
+
+* Put processmpd.sh in /home/YOUR-HASS-USER/.homeassistant/shell_commands.  Make it executable, `chmod +x processmpd.sh`.
+* create directory /home/YOUR-HASS-USER/ha-scrobble owned by the user running hass.
+* Put ha-scrobble.py in this directory and make it executable, `chmod +x ha-scrobble.py`.  Set file ownership to YOUR-HASS-USER, eg., `chown YOUR-HASS-USER:YOUR-HASS-USER /home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.py`
+* `touch /home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.log`.  Various events are logged & I left a lot of the logging intact in ha-scrobble.py, although some is commented out.  As long as you don't run into issues, you could comment it all out if you don't want deal with maintaining the log file (see below for logrotate).
+* `touch /home/YOUR-HASS-USER/ha-scrobble/stackfile.txt` owned by your hass user.  It's a stack of sorts - a file to hold the last track that was playing.
+* create a shell command in your hass configuration - here's an example:
+  `process_mpd_data: /home/YOUR-HASS-USER/.homeassistant/shell_commands/processmpd.sh {{ mpd_data }}` - regardless of node red or yaml automation this will pass the media event data to the processmpd.sh shell script to start the scrobbling activity.
+* edit lines 15-25 of ha-scrobbe.py and edit the entries for your last.fm account data (API_KEY, API_SECRET, SESSION_KEY, USER_NAME) and global data (logfile and stackfile paths, and the SUFFIX_LIST which is simply a list of suffixes for files in your music library, e.g., ".flac").
+
+#### Python outside of Hass
+
+If you wish to run this outside of hass then you need to modify the shell script, processmpd.sh, effectively breaking it up into multiple scripts.  I have commented processmpd.sh with instructions on waht to modify and the 2 additional scripts needed are also included with comments in the repo.
+
+The processmpd.sh script should be modififed to only write the media event data to a file, e.g., ha-scrobble/mpd-events.txt  A second script, processmpd-events.sh, would read the last line of mpd-events.txt and call the ha-scrobble.py function.  The trick to this is to figure out how to trigger the second script outside of hass.  One way to do that is to link your hass ha-scrobble container folder to a similar folder on the host.  If, for example, you're running hass in a container (which most non homeassistant-core implementations seem to do), you could map the ha-scrobble folder in the hass container to a host folder by using a -v option on your hass container run command, e.g., `-v /home/user/ha-scrobble:/home/hass-user/ha-scrobble`.  Then inotifywait could be used to monitor the host file mpd-events.txt for changes.  
+
+To effect this, install inotifywait tools - e.g., on ubuntu/debian `sudo apt update -y && sudo apt install -y inotify-tools`.  Then you need a (3rd) script, scrobble-notifier.sh, like this:
 ```bash
 #!/bin/bash
 #if you have a mail MTA installed and/or require mail for cron, comment this out or set to appropriate value
 MAILTO=""
 
-while inotifywait -e modify /home/user/ha-scrobble/mpd-events.txt; do /usr/local/bin/processmpd-host.sh; done
+while inotifywait -e modify /home/user/ha-scrobble/mpd-events.txt; do /usr/local/bin/processmpd-events.sh; done
 ```
 Save that as scrobble-notifier.sh some place - e.g., /usr/local/bin on the host and make it executable by the user that will run ha-scrobble.py on the host.
 
 Add a crontab entry for that same user to run this script on boot - for example `crontab -e` and then add this to the end and save:
 `@reboot /usr/local/bin/scrobble-notifier.sh >/dev/null 2>&1`
 
-Finally, put ha-scrobble.py on the host somewhere, e.g., /usr/local/bin and add /usr/local/bin/processmpd-host.sh that would contain something like this:
+Finally, put ha-scrobble.py on the host somewhere, e.g., /usr/local/bin and add /usr/local/bin/processmpd-events.sh that would contain something like this:
 ```bash
 #!/bin/bash
 
 x=$(tail -1 /home/user/ha-scrobble/mpd-events.txt)
-/usr/local/bin/ha-scrobble.py "$x" "yaml" #or nodered if using nodered.
+/usr/local/bin/ha-scrobble.py "$x"
 ```
 
-Now hass will simply dump media player events to a text file in the container, inotifywait on the host will see that the file has been changed on disk and will execute processmpd-host.sh which will get the last line in the file and call ha-scrobble.py.
+Now hass will simply dump media player events to a text file in the container, inotifywait on the host will see that the file has been changed on disk and will execute processmpd-events.sh which will get the last line in the file and call ha-scrobble.py.  The github repo contains the additional 2 shell scripts with comments to help set this up and comments in the original script, processmpd.sh to change it to fit this scenario.
+
+##### A Simpler solution outside of Hass for Nodered
+A simpler alternative if you're using nodered is to not return the mpd_data to a hass shell command and instead call a python script directly from nodered.  To do this, you'd have to change the final node in the above nodered flow; instead of calling a homeassistant shell command service, you could call a python script from within node red with the mpd_data as an argument.  If you go this route, you don't need the shell command added to your hass configuration.
 
 # Media Player Events
 
 ## High Level Data Flow
 
-As media plays within hass, media player events are generated and the above automation process these media player events.  Processing simply means that event data is captured and sent to your shell command.  I've observed that the different music player integrations generate events at different frequencies.  mpd seems to generate an event about every 10 seconds.  forked-daapd seems to generate much fewer events (sometimes only 1 per track) and they seem to vary by radio station and whether playing local media vs internet radio/streaming.  Plex seems to generate 1 event per track played.  Regardless, the automation sends the captured json string (mpd-data) to the shell command which simply calls ha-scrobble.py with the json string as an argument.  ha-scrobble.py then does it's thing - since multiple events are potentially captured per playing track, each time it's invoked, ha-scrobble.py has to determine if the track is scrobble-able.  last.fm instructs that a track is only scrobble-able if it's duration is at least 30 seconds; and moreover, it cannot be scrobbled before it has played at least half of it's duration or has played longer than 240 seconds.  So, if it's not scrobble-able, ha-scrobble.py does nothing; otherwise, if it meets the condiditions for scrobbling, it scrobbles the track.  The log file captures the relevant details per above.
+As media plays within hass, media player events are generated and the above automation processes these media player events.  Processing simply means that event data is captured and sent to your shell command.  I've observed that the different music player integrations generate events at different frequencies.  mpd seems to generate an event about every 10 seconds.  forked-daapd seems to generate much fewer events (sometimes only 1 per track) and they seem to vary as a function of source, e.g., internet radio station vs a local library file.  Plex seems to generate 1 event per track played.  Regardless, the automation sends the captured json string (mpd-data) to the shell command which simply calls ha-scrobble.py with the json string as an argument.  ha-scrobble.py then does it's thing - since multiple events are potentially captured per playing track, each time it's invoked, ha-scrobble.py has to determine if the track is scrobble-able.  last.fm instructs that a track is only scrobble-able if it's duration is at least 30 seconds; and moreover, it cannot be scrobbled before it has played at least half of it's duration or has played longer than 240 seconds.  So, if it's not scrobble-able, ha-scrobble.py does nothing; otherwise, if it meets the condiditions for scrobbling, it scrobbles the track.  The log file captures the relevant details per above.
 
 ## Media Player Event Data
 
@@ -172,14 +186,14 @@ After scrobbling tracks you may wish to download your listening history.  Here a
 
 # Generating a Last.fm Session Key
 
-1. You can read all of this from the API documentation at https://www.last.fm/api/desktopauth, but i've put the salient bits below with a few explanatory bits/examples in a few spots.
+1. You can read all of this from the API documentation at https://www.last.fm/api/desktopauth, but i've put the salient bits below with a few explanatory notes/examples in a few spots.
 2. send an http get request to [http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=YOUR_API_KEY_HERE&format=json](http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=YOUR_API_KEY_HERE&format=json) - you can do this from a browser, use curl, python requests or httpx... whatever.  it will return json with {"token": "YOUR_API_TOKEN_HERE"}.  this is only good for 60 minutes.
 3. open a browser and log into last.fm if not already logged in.  In another browser tab, go to [http://www.last.fm/api/auth/?api_key=YOUR_API_KEY_HERE&token=YOUR_API_TOKEN_HERE](http://www.last.fm/api/auth/?api_key=YOUR_API_KEY_HERE&token=YOUR_API_TOKEN_HERE) - this will end up taking you to a page to grant authorization to use the application.
-4. build the following string:
+4. assemble the following string:
    "api_keyYOUR_API_KEY_HEREmethodauth.getSessiontokenYOUR_API_TOKEN_HEREYOUR_API_SECRET_HERE" and then get the md5 hash of this.  You can do this in a few ways:
 	- from a shell: `echo -n "api_keyYOUR_API_KEY_HEREmethodauth.getSessiontokenYOUR_API_TOKEN_HEREYOUR_API_SECRET_HERE" | md5sum`
 	- from python3 - open python3 from shell, `import pylast` and then issue: `pylast.md5("api_keyYOUR_API_KEY_HEREmethodauth.getSessiontokenYOUR_API_TOKEN_HEREYOUR_API_SECRET_HERE")`
-both of these will yield a 32 character md5 hash of the above string.  This is your api_sig for use below.
+both of these will yield a 32 character md5 hash of the above string. this is your api_sig in params below.
 5. send an https post:
    e.g., from python3:
    ``` python
@@ -198,5 +212,3 @@ both of these will yield a 32 character md5 hash of the above string.  This is y
    </session>
    </lfm>
    ```
-
-
