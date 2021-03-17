@@ -12,11 +12,11 @@
 - `touch ./ha-scrobble.log`
 - `touch ./stackfile.txt`
 - move processmpd.sh to your shell_commands directory, e.g., `mv processmpd ../.homeassistant/shell_commands`
-- edit ha-scrobble.py and set the Last.fm account constants and other globals - see hascrobblermd/full-readme for details.  Also set your python shebang string to the python environment/command you wish to use.
+- edit ha-scrobble.py and set the Last.fm account constants and other globals - see full-readme.md for details.  Also set your python shebang string to the python environment/command you wish to use.
 - install requirements.txt to your chosen python environment
-- add a yaml automation &/or nodered flow - see full-readme/full-readme.md for details
-- add a shell command to your homeassistant configuration - see full-readme/full-readme.md for details
-- modify the yaml automation, nodered flow and shell command as needed to match the media player(s) you use.  Read the full-readme/full-readme.md section on Media Player Events - especially the Event Parsing paragraph if you use players other than forked-daapd, mpd, or Plex - these are the players i have tested with so it may take some additional work to make this work for other players.
-- set up logrotate per instructions in full-readme/full-readme.md or per your own preferences
-- obtain a Last.fm account if you don't have one yet and get a Last.fm API and set up a session key - per instructions in full-readme/full-readme.md
+- add a yaml automation &/or nodered flow - see full-readme.md for details
+- add a shell command to your homeassistant configuration - see full-readme.md for details
+- modify the yaml automation, nodered flow and shell command as needed to match the media player(s) you use.  Read the full-readme.md section on Media Player Events - especially the Event Parsing paragraph if you use players other than forked-daapd, mpd, or Plex - these are the players i have tested with so it may take some additional work to make this work for other players.
+- set up logrotate per instructions in full-readme.md or per your own preferences
+- obtain a Last.fm account if you don't have one yet and get a Last.fm API and set up a session key - per instructions in full-readme.md
 - Scrobble away!
