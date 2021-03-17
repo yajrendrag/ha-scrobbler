@@ -25,7 +25,7 @@ You'll need some automation in HA to extract media player events to feed the scr
 * If using yaml automation, here's an example automation that will send the captured media player event data (in this case from forked_daapd_server - set this to match the media player you're using - you may be able to set multiple media players here) to your shell command:
 
 ```yaml
-     - alias: 'capture media player events'
+- alias: 'capture media player events'
   trigger:
     platform: event
     event_type: state_changed
