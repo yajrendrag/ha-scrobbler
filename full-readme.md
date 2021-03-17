@@ -90,9 +90,9 @@ and it's associated json (this is scrubbed so you won't get my config nodes):
 You'll need to modify the first switch node to match your media player(s).
 ### Python Setup
 
-You can choose to run this as a Hass based python environment - i.e., in your hass machine (a bare metal or a container, in a separate venv or using the same or separate version of python in that machine) - OR,  you can opt to run in a python environment outside of your hass machine, ie, pass the media player event data to another machine.  The latter use case includes running on the host of the machine on which hass is running as a container.
+You can choose to run this in a Hass machine python environment - i.e., in your hass machine (a bare metal machine or a container, in a separate venv or using the same or separate version of python in that machine) - OR,  you can opt to run in a python environment outside of your hass machine, ie, pass the media player event data to another machine.  The latter use case includes running on the host of the machine on which hass is running as a container.
 
-#### Hass based Python setup
+#### Hass Machine Python setup
 
 * Put processmpd.sh in /home/YOUR-HASS-USER/.homeassistant/shell_commands.  Make it executable, `chmod +x processmpd.sh`.
 * create directory /home/YOUR-HASS-USER/ha-scrobble owned by the user running hass.
