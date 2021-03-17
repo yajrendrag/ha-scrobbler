@@ -80,7 +80,7 @@ You'll need some automation in HA to extract media player events to feed the scr
 
 * If using nodered, here's a nodered flow you can use:
 
-![nodered-media-player-capture.png](:../_resources/fdf27dd6980444c5b70b2c65d9a4c4e3)
+![nodered-media-player-capture.png](:../_resources/fdf27dd6980444c5b70b2c65d9a4c4e3.png)
 
 and it's associated json (this is scrubbed so you won't get my config nodes):
 ```json
