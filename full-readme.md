@@ -12,8 +12,9 @@ The other thing you'll need is a last.fm API key - go to https://last.fm/api and
 
 ## Gather the things you'll need:
 
-* scrobbler code - ha-scrobble.py
-* scrobbler shell script - processmpd.sh - this will work with yaml based automation or node-red, flow based automation.
+* connect into your hass instance (e.g., ssh, docker exec -it...)
+* change directory to the home folder of the user that runs hass - this should be parent folder of your .homeassistant folder.
+* clone the repository - `git clone https://github.com/yajrendrag/ha-scrobbler.git ha-scrobble`
 * python 3 dependencies: pylast, httpx, json, time, sys, re, subprocess, datetime, shutil, SimpleNamespace from types, and BeautifulSoup from bs4.  requirements.txt contains the packages to install.
 
 ## Put things into place
@@ -174,8 +175,8 @@ here's a logrotate script you can use with your logfile:
     su YOUR-HASS-USER YOUR-HASS-USER
 }
 ```
-Keep this in `/home/YOUR-HASS-USER/ha-scrobble` as a file named hascrobble-lr and add a crontab entry for YOUR-HASS-USER something like:
-`22 */4 * * * /usr/sbin/logrotate -f /home/YOUR-HASS-USER/ha-scrobble/hascrobble-lr --state /home/YOUR-HASS-USER/ha-scrobble/status`  Modify paths if you're running ha-scrobble outside of hass.
+Keep this in `/home/YOUR-HASS-USER/ha-scrobble` as a file named hascrobble.lr and add a crontab entry for YOUR-HASS-USER something like:
+`22 */4 * * * /usr/sbin/logrotate -f /home/YOUR-HASS-USER/ha-scrobble/hascrobble.lr --state /home/YOUR-HASS-USER/ha-scrobble/status`  Modify paths if you're running ha-scrobble outside of hass.
 
 This way you can run it at your own schedule and not have to change any OS level settings for logrotate.
 
