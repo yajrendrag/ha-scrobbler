@@ -1,0 +1,53 @@
+# change entity_id to match that of your media player(s)
+# create a shell_command in your yaml - it's name should match the name of the service action
+- alias: 'capture media player events'
+  trigger:
+    platform: event
+    event_type: state_changed
+    event_data:
+      entity_id: media_player.mpd
+  condition:
+    condition: template
+    value_template: "{{ trigger.event.data['new_state']['state'] == 'playing' or trigger.event.data['old_state']['state'] == 'playing' }}"
+  action:
+    - service: shell_command.process_mpd_data
+      data_template:
+        mpd_data: >
+          '{{
+            {
+            "old_state": {"media_content_type": trigger.event.data['old_state']['attributes']['media_content_type'] | default(""),
+                          "media_content_id": trigger.event.data['old_state']['attributes']['media_content_id'] | default(""),
+                          "media_position_updated_at": as_timestamp(trigger.event.data['old_state']['attributes']['media_position_updated_at']) | timestamp_custom('%Y-%m-%dT%H:%M:%S.%f%z',False) | default(""),
+                          "media_title": trigger.event.data['old_state']['attributes']['media_title'] | default("") | replace("'",""),
+                          "media_artist": trigger.event.data['old_state']['attributes']['media_artist'] | default("") | replace("'",""),
+                          "media_duration": trigger.event.data['old_state']['attributes']['media_duration'] | default(""),
+                          "media_position": trigger.event.data['old_state']['attributes']['media_position'] | default(""),
+                          "media_track": trigger.event.data['old_state']['attributes']['media_track'] | default(""),
+                          "media_album_name": trigger.event.data['old_state']['attributes']['media_album_name'] | default(""),
+                          "media_album_artist": trigger.event.data['old_state']['attributes']['media_album_artist'] | default(""),
+                          "source": trigger.event.data['old_state']['attributes']['source'] | default(""),
+                          "friendly_name": trigger.event.data['old_state']['attributes']['friendly_name'] | default(""),
+                          "entity_picture": trigger.event.data['old_state']['attributes']['entity_picture'] | default(""),
+                          "source_list": trigger.event.data['old_state']['attributes']['source_list'] | default("")
+                         },
+            "new_state": {"media_content_type": trigger.event.data['new_state']['attributes']['media_content_type'] | default(""),
+                          "media_content_id": trigger.event.data['new_state']['attributes']['media_content_id'] | default(""),
+                          "media_position_updated_at": as_timestamp(trigger.event.data['new_state']['attributes']['media_position_updated_at']) | timestamp_custom('%Y-%m-%dT%H:%M:%S.%f%z',False) | default(""),
+                          "media_title": trigger.event.data['new_state']['attributes']['media_title'] | default("") | replace("'",""),
+                          "media_artist": trigger.event.data['new_state']['attributes']['media_artist'] | default("") | replace("'",""),
+                          "media_duration": trigger.event.data['new_state']['attributes']['media_duration'] | default(""),
+                          "media_position": trigger.event.data['new_state']['attributes']['media_position'] | default(""),
+                          "media_track": trigger.event.data['new_state']['attributes']['media_track'] | default(""),
+                          "media_album_name": trigger.event.data['new_state']['attributes']['media_album_name'] | default(""),
+                          "media_album_artist": trigger.event.data['new_state']['attributes']['media_album_artist'] | default(""),
+                          "source": trigger.event.data['new_state']['attributes']['source'] | default(""),
+                          "friendly_name": trigger.event.data['new_state']['attributes']['friendly_name'] | default(""),
+                          "entity_picture": trigger.event.data['new_state']['attributes']['entity_picture'] | default(""),
+                          "source_list": trigger.event.data['new_state']['attributes']['source_list'] | default("")
+                         },
+             "time_new": as_timestamp(trigger.event.data['new_state']['last_updated']) | timestamp_custom('%Y-%m-%dT%H:%M:%S.%f%z',False),
+             "time_old": as_timestamp(trigger.event.data['old_state']['last_updated']) | timestamp_custom('%Y-%m-%dT%H:%M:%S.%f%z',False),
+             "state_new": trigger.event.data['new_state']['state'],
+             "state_old": trigger.event.data['old_state']['state']
+             } | to_json
+          }}'
