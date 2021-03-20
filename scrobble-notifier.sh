@@ -7,5 +7,5 @@ MAILTO=""
 # create a cron job for the user that will run ha-scrobble and add this to that user's crontab
 #@reboot /usr/local/bin/scrobble-notifier.sh >/dev/null 2>&1
 
-# edit line below by replaceing user with the name of an actual user on your system
+# edit line below by replacing user with the name of an actual user on your system
 while inotifywait -e modify /home/user/ha-scrobble/mpd-events.txt; do /usr/local/bin/processmpd-events.sh; done
