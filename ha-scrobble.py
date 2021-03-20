@@ -25,7 +25,8 @@ SUFFIX_LIST = ('.flac', '.mp3') #list of music file suffixes - edit as needed
 EMPTYFILE = '/dev/null' # should be ok as is
 LFM_URL = 'http://ws.audioscrobbler.com/2.0/' # should be ok as is
 
-logging.basicConfig(filename=LOGFILE, filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename=LOGFILE, filemode='a', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 try:
     stack = open(STACKFILE, 'r+')
