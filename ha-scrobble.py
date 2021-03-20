@@ -90,33 +90,36 @@ def main():
         if (not_scrobbled_already(oldTrack.data.artist, oldTrack.data.title,
                 oldTrack.time.timeStamp, oldTrack.data.duration, network) and
                 long_enough_to_scrobble(oldTrack.data.duration, newTrack.time.timeStamp,
-                pTrack.time.timeStamp) and track_not_stale(pTrack, newTrack)):
-            scrobble_answer = scrobble_track(oldTrack.data.artist, oldTrack.data.title,
-                oldTrack.time.timeStamp, network, oldTrack.state.mediaTrack, oldTrack.data.contentId)
-            logging.info(f"Popped track == oldTrack & != newTrack and > 30 sec in duration and"
-                     + f"played at least half its duration or its longer than 4 minutes - "
-                     + f"scrobbling oldTrack: {pTrack}\n{scrobble_answer}\n")
+                pTrack.time.timeStamp) and
+                track_not_stale(pTrack, newTrack)):
+            scrobble_track(oldTrack, network)
 
     if pTrack.data != newTrack.data: push_stack(newTrack)
 
     logging.info(f"---")
     stack.close()
 
-def scrobble_track(artist, title, timeStamp, network, mediaTrack, contentId):
+def scrobble_track(track, network):
     ''' use pylast to scrobble easily with network.scrobble unless it's
         a radio station in which case chosenByUser is set to 0 to indicate
         the track was chosen, for example, by the radio station.
         '''
 
-    if next((True for s in SUFFIX_LIST if contentId[-len(s):] == s), False):
+    if track.data.artist == None or '[unknown]' in track.data.artist:
+        logging.info(f"No scrobbling performed - unknown artist string\n")
+        return
+
+    if ((next((True for s in SUFFIX_LIST if track.data.contentId[-len(s):] == s), False) and
+            track.data.title[0:4] != 'http') or int(track.state.mediaTrack) > 0):
         #scrobble with pylast
-        network.scrobble(artist=artist, title=title, timestamp=timeStamp)
-        return "scrobble implicit"
+        network.scrobble(artist=track.data.artist, title=track.data.title,
+            timestamp=track.time.timeStamp)
+        scrobble_result = "scrobble implicit"
     else:
         #scrobble with lfm direct api in order to set chosenByUser to 0
-        params=[('api_key', API_KEY), ('artist', artist), ('track', title),
+        params=[('api_key', API_KEY), ('artist', track.data.artist), ('track', track.data.title),
             ('method', 'track.scrobble'), ('sk', SESSION_KEY),
-            ('timestamp', str(timeStamp)), ('chosenByUser', '0')]
+            ('timestamp', str(track.time.timeStamp)), ('chosenByUser', '0')]
         sorted_params = sorted(params, key=lambda x: x[0])
         api_sig=''.join('%s' % ''.join(p) for p in sorted_params) + API_SECRET
         api_sig = pylast.md5(api_sig)
@@ -124,8 +127,15 @@ def scrobble_track(artist, title, timeStamp, network, mediaTrack, contentId):
         xparams['api_sig']=api_sig
         xparams['format']='json'
         response = httpx.post(LFM_URL, params=xparams)
-        return ("scrobble accepted" if response.json()['scrobbles']['@attr']['accepted'] == 1
-            else "scrobble not accepted")
+        if response.json()['scrobbles']['@attr']['accepted'] == 1:
+            scrobble_result = "scrobble accepted"
+        else:
+            scrobble_result = "scrobble not accepted"
+
+    logging.info(f"Popped track == oldTrack & duration longer than 30 seconds"
+         + f"and played ≥ half its duration or its longer than 4 minutes - "
+         + f"scrobbling oldTrack: {track}\n{scrobble_result}\n")
+    return
 
 def not_scrobbled_already(artist, title, timestamp, duration, network):
     '''check to determine if track has already been scrobbled to avoid
@@ -164,7 +174,7 @@ def long_enough_to_scrobble(old_duration, new_timestamp, p_timestamp):
     return False
 
 def track_not_stale(pTrack, newTrack):
-    ''' Check if popped track is stale and needs to be replaced.'''
+    '''Check if popped track is stale and needs to be replaced.'''
 
     if newTrack.time.timeStamp > (pTrack.time.timeStamp + pTrack.data.duration*2):
         #popped track is stale
