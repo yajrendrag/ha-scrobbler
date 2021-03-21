@@ -79,7 +79,7 @@ You'll need some automation in HA to extract media player events to feed the scr
           }}'
 ```
 
-* If using nodered, here's a nodered flow you can use:
+* If using Node-RED, here's a flow you can use:
 
 ![nodered-media-player-capture.png](fdf27dd6980444c5b70b2c65d9a4c4e3.png)
 
@@ -96,12 +96,11 @@ You can choose to run this in a Hass machine python environment - i.e., in your 
 #### Hass Machine Python setup
 
 * Put processmpd.sh in /home/YOUR-HASS-USER/.homeassistant/shell_commands.  Make it executable, `chmod +x processmpd.sh`.
-* create directory /home/YOUR-HASS-USER/ha-scrobble owned by the user running hass.
-* Put ha-scrobble.py in this directory and make it executable, `chmod +x ha-scrobble.py`.  Set file ownership to YOUR-HASS-USER, eg., `chown YOUR-HASS-USER:YOUR-HASS-USER /home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.py`
+* Make ha-scrobble.py executable, `chmod +x ha-scrobble.py`.  Ensure file ownership by YOUR-HASS-USER, eg., `chown YOUR-HASS-USER:YOUR-HASS-USER /home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.py`
 * `touch /home/YOUR-HASS-USER/ha-scrobble/ha-scrobble.log`.  Various events are logged & I left a lot of the logging intact in ha-scrobble.py, although some is commented out.  As long as you don't run into issues, you could comment it all out if you don't want deal with maintaining the log file (see below for logrotate).
 * `touch /home/YOUR-HASS-USER/ha-scrobble/stackfile.txt` owned by your hass user.  It's a stack of sorts - a file to hold the last track that was playing.
 * create a shell command in your hass configuration - here's an example:
-  `process_mpd_data: /home/YOUR-HASS-USER/.homeassistant/shell_commands/processmpd.sh {{ mpd_data }}` - regardless of node red or yaml automation this will pass the media event data to the processmpd.sh shell script to start the scrobbling activity.
+  `process_mpd_data: /home/YOUR-HASS-USER/.homeassistant/shell_commands/processmpd.sh {{ mpd_data }}` - regardless of Node-RED or yaml automation this will pass the media event data to the processmpd.sh shell script to start the scrobbling activity.
 * edit lines 15-25 of ha-scrobbe.py and edit the entries for your last.fm account data (API_KEY, API_SECRET, SESSION_KEY, USER_NAME) and global data (logfile and stackfile paths, and the SUFFIX_LIST which is simply a list of suffixes for files in your music library, e.g., ".flac").
 
 #### Python outside of Hass
@@ -133,8 +132,8 @@ x=$(tail -1 /home/user/ha-scrobble/mpd-events.txt)
 
 Now hass will simply dump media player events to a text file in the container, inotifywait on the host will see that the file has been changed on disk and will execute processmpd-events.sh which will get the last line in the file and call ha-scrobble.py.  The github repo contains the additional 2 shell scripts with comments to help set this up and comments in the original script, processmpd.sh to change it to fit this scenario.
 
-##### A Simpler solution outside of Hass for Nodered
-A simpler alternative if you're using nodered is to not return the mpd_data to a hass shell command and instead call a python script directly from nodered.  To do this, you'd have to change the final node in the above nodered flow; instead of calling a homeassistant shell command service, you could call a python script from within node red with the mpd_data as an argument.  If you go this route, you don't need the shell command added to your hass configuration.
+##### A Simpler solution outside of Hass for Node-RED
+A simpler alternative if you're using Node-RED is to not return the mpd_data to a hass shell command and instead call a python script directly from Node-RED.  To do this, you'd have to change the final node in the above Node-RED flow; instead of calling a homeassistant shell command service, you could call a python script from within Node-RED with the mpd_data as an argument.  If you go this route, you don't need the shell command added to your hass configuration.
 
 # Media Player Events
 
