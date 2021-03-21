@@ -157,7 +157,7 @@ A track's artist, title & duration may need to be parsed from the media player e
 
 The above criteria enable me to directly extract title, artist and duration (all needed for scrobbling) or parse the supplied fields into the 3 required fields in order to be able to successfully scrobble the track.
 
-You may find that other music players you use may necessitate additional criteria and you'll want to integrate the changes in the event class private funciton of __parse_event_data.  Alternatively, let me know what you find and i'll try to help update this code section.
+You may find that other music players you use may necessitate additional criteria and you'll want to integrate the changes in the event class private funciton of __parse_event_data.  Issue a PR if modify for other players or open an issue if you need help modifying for other players.
 
 # log file rotation
 
