@@ -1,4 +1,4 @@
-# Introduction
+od# Introduction
 
 I was looking for a project to help me learn/practice more python & I like to listen to music and scrobble to last.fm throughout the day.  The players I use are all integrations in hass, but one of them only scrobbled tracks from my own library and not from any streaming service and I wanted a single scrobbling solutiion and not one i'd have to select/manage player by player.  So, I decided to write my own.
 
@@ -176,7 +176,7 @@ here's a logrotate script you can use with your logfile:
 }
 ```
 Keep this in `/home/YOUR-HASS-USER/ha-scrobble` as a file named hascrobble.lr and add a crontab entry for YOUR-HASS-USER something like:
-`22 */4 * * * /usr/sbin/logrotate -f /home/YOUR-HASS-USER/ha-scrobble/hascrobble.lr --state /home/YOUR-HASS-USER/ha-scrobble/status`  Modify paths if you're running ha-scrobble outside of hass.
+`22 */4 * * * /usr/sbin/logrotate -f /home/YOUR-HASS-USER/ha-scrobble/hascrobble.lr --state /home/YOUR-HASS-USER/ha-scrobble/status`.  Modify paths if you're running ha-scrobble outside of hass.
 
 This way you can run it at your own schedule and not have to change any OS level settings for logrotate.
 
