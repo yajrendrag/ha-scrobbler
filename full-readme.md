@@ -2,7 +2,7 @@ od# Introduction
 
 I was looking for a project to help me learn/practice more python & I like to listen to music and scrobble to last.fm throughout the day.  The players I use are all integrations in hass, but one of them only scrobbled tracks from my own library and not from any streaming service and I wanted a single scrobbling solutiion and not one i'd have to select/manage player by player.  So, I decided to write my own.
 
-On hass, I use the forked-daapd and mpd integrations and for players i use forked-daapd, Cantata (linux/macos mpd music client) and bubbleupnp on android with upmpdcli as a upnp renderer for mpd (allows bubbleupnp to play to mpd).  To achieve whole home audio, i couple  this with snapcast, shairport-sync & Sonos.  Other player integrations i've tested with include Sonos, Plex, and Jellyfin (added to Hass via Emby Integration)
+On hass, I use the forked-daapd and mpd integrations and for players i use forked-daapd, Cantata (linux/macos mpd music client) and bubbleupnp on android with upmpdcli as a upnp renderer for mpd (allows bubbleupnp to play to mpd).  To achieve whole home audio, i couple  this with snapcast, shairport-sync & Sonos.  Other player integrations i've tested with include Sonos, Plex, and Jellyfin (added to Hass via Emby Integration) as well as Spotify played through Sonos or forked-daapd.
 
 # Setup
 
