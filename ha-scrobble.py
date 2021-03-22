@@ -255,6 +255,11 @@ class event:
             player = json.loads(media)[state+'_state']['friendly_name']
         except:
             player = ""
+        try:
+            sonos = json.loads(media)[state+'_state']['sonos_group']
+            if sonos: player="sonos"
+        except:
+            sonos = ""
         d = {"artist": mediaArtist,
              "title": mediaTitle,
              "duration": mediaDuration,
@@ -315,7 +320,8 @@ class event:
                 streamNameEnd = ev.title.find(": ")
                 track.artist, track.title = self.__parse_title(ev.title[streamNameEnd+2:])
         elif (int(state.mediaTrack) >= 0 or
-                next((True for s in SUFFIX_LIST if ev.contentId[-len(s):] == s), False)):
+                next((True for s in SUFFIX_LIST if ev.contentId[-len(s):] == s), False) or
+                int(state.mediaTrack) == -1 and state.player == "sonos"):
             # it's a radio station from forked_daapd_server and they identify
             # artist & title or its a file from library - in either case no
             # parsing required, both are directly available from event

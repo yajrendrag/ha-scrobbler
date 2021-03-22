@@ -2,7 +2,7 @@
 
 I was looking for a project to help me learn/practice more python & I like to listen to music and scrobble to last.fm throughout the day.  The players I use are all integrations in hass, but one of them only scrobbled tracks from my own library and not from any streaming service and I wanted a single scrobbling solutiion and not one i'd have to select/manage player by player.  So, I decided to write my own.
 
-On hass, I use the forked-daapd and mpd integrations and for players i use forked-daapd, Cantata (linux/macos mpd music client) and bubbleupnp on android with upmpdcli as a upnp renderer for mpd (allows bubbleupnp to play to mpd).  To achieve whole home audio, i couple  this with snapcast, shairport-sync & Sonos.
+On hass, I use the forked-daapd and mpd integrations and for players i use forked-daapd, Cantata (linux/macos mpd music client) and bubbleupnp on android with upmpdcli as a upnp renderer for mpd (allows bubbleupnp to play to mpd).  To achieve whole home audio, i couple  this with snapcast, shairport-sync & Sonos.  Other player integrations i've tested with include Sonos, Plex, and Jellyfin (added to Hass via Emby Integration)
 
 # Setup
 
@@ -154,6 +154,7 @@ A track's artist, title & duration may need to be parsed from the media player e
 	* media_track is 0 when forked_daapd is playing a radio station and > 0 (it's the actual track # in the album) if playing a local music file
 	* with mpd, media_content_id is the name of the file if playing a local file - hence why you need the SUFFIX_LIST to contain a list of your music file suffixes
 	* artist string is empty and media_content_id contains the url (starts with http) of the radio station when an mpd client is playing a radio station and moreover artist and title have to be parsed from the title string (private __parse_title function)
+	* media_track is undefined (so set to -1 by event class) if the player integration is sonos, moroever, player (media event data) isn't set to sonos, and instead sonos_group is defined and seems to be a list of which sonos players are playing.  So, the Event class defines player as sonos based on sonos_group and this identifies player type as Sonos and is thus distinguished from a local file - artist, title, duration data is directly available from event data.
 
 The above criteria enable me to directly extract title, artist and duration (all needed for scrobbling) or parse the supplied fields into the 3 required fields in order to be able to successfully scrobble the track.
 

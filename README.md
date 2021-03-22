@@ -18,7 +18,7 @@
 - add a shell command to your homeassistant configuration - see full-readme.md for details
 - add a shell command to your homeassistant configuration - here's an example based on above automation service call:
 `process_mpd_data: /home/YOUR-HASS-USER/.homeassistant/shell_commands/processmpd.sh {{ mpd_data }}` - this will pass the media event data to the processmpd.sh shell script to start the scrobbling activity.  Make sure to replace YOUR-HASS-USER with your actual hass user name in above path.
-- modify the yaml automation or Node-RED flow as needed to match the media player(s) you use.  Read the full-readme.md section on Media Player Events - especially the Event Parsing paragraph if you use players other than forked-daapd, mpd, or Plex - these are the players i have tested with so it may take some additional work to make this work for other players.
+- modify the yaml automation or Node-RED flow as needed to match the media player(s) you use.  Read the full-readme/full-readme.md section on Media Player Events - especially the Event Parsing paragraph if you use players other than forked-daapd, mpd, Jellyfin, Sonos, or Plex - these are the players i have tested with so it may take some additional work to make this work for other players.
 - set up logrotate per instructions in full-readme.md or per your own preferences
 - obtain a Last.fm account if you don't have one yet and get a Last.fm API and set up a session key - per instructions in full-readme.md
 - listen to music (from your library or streaming service) and you should see scrobbles logged to your Last.fm library.  If not, look at the ha-scrobble.log file for indications on what went wrong.
