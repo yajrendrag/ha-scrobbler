@@ -18,7 +18,7 @@ API_SECRET = "YOUR_LASTFM_API_SECRET_HERE"
 SESSION_KEY = "YOUR_LAST_FM_SESSION_KEY_HERE"
 USER_NAME = "YOUR_LASTFM_USERNAME_HERE"
 
-#program globals
+# program globals
 LOGFILE = '/full/path/to/ha-scrobble.log_here'
 STACKFILE = '/full/path/to/a/stackfile.txt_here'
 SUFFIX_LIST = ('.flac', '.mp3') #list of music file suffixes - edit as needed
@@ -39,9 +39,9 @@ def main():
     args = sys.argv[1:]
     media = args[0]
     try:
-        mediajson = BeautifulSoup(media, features="html.parser").get_text()
+        media_json = BeautifulSoup(media, features="html.parser").get_text()
     except:
-        logging.error(f"improperly formatted media data, terminating\n{media}\n")
+        logging.error(f"improperly formatted media data, exiting\n{media}\n")
         sys.exit(1)
 
     network = pylast.LastFMNetwork(
@@ -50,77 +50,85 @@ def main():
     # parse event data from both old and new events captured
     # event data may not have all of the details which will
     # be resolved in next outside_temp
-    new = event(mediajson,'new', network)
-    newData, newState, newTime = new.get_event_info()
-    old = event(mediajson,'old', network)
-    oldData, oldState, oldTime = old.get_event_info()
+    new = event(media_json,'new', network)
+    new_data, new_state, new_time = new.get_event_info()
+    old = event(media_json,'old', network)
+    old_data, old_state, old_time = old.get_event_info()
 
-    if newState.state != "playing" and oldState.state != "playing":
+    if new_state.state != "playing" and old_state.state != "playing":
         logging.error(f"error - neither new or old states are playing\n")
         sys.exit(1)
-    if newData.contentType != "music":
+    if new_data.content_type != "music" and new_state.state == "playing":
         logging.error(f"exiting - media being played is not music\n")
         sys.exit(1)
 
     # parse track details from old and new events - provides
     # any missing details from lastFM that simple event
     # parsing failed to capture
-    if newState.state == "playing" or newState.player.find("Plex") == -1 :
-        newTrack = new.get_missing_track_info()
+    if new_state.state == "playing" or new_state.player.find("Plex") == -1 :
+        new_track = new.get_missing_track_info()
 
     # pop track from stack..
     try:
-        pTrack=json.load(stack, object_hook=lambda d: SimpleNamespace(**d))
+        ptrack=json.load(stack, object_hook=lambda d: SimpleNamespace(**d))
         ar = network.search_for_artist(
-            pTrack.data.artist).get_next_page()[1] #lfm updatenowplaying better?
+            ptrack.data.artist).get_next_page()[1] #lfm updatenowplaying better?
         stack.close()
     except (json.decoder.JSONDecodeError, IndexError):
-        #stack empty or non-existent artist - push newTrack on stack
-        pTrack = newTrack
-        push_stack(newTrack)
+        #stack empty or non-existent artist - push new_track on stack
+        ptrack = new_track
+        push_stack(new_track)
 
-    if oldState.state == "playing" or oldState.player.find("Plex") == -1:
-        oldTrack = old.get_missing_track_info()
+    if old_state.state == "playing" or old_state.player.find("Plex") == -1:
+        old_track = old.get_missing_track_info()
     else:
-        oldTrack = pTrack
+        old_track = ptrack
 
-    logging.info(f"\n  New track: {newTrack}\n\n  Old track: {oldTrack}\n\n  Popped track: {pTrack}\n")
+    logging.info(f"\n  New track: {new_track}\n\n  Old track: {old_track}\n\n"
+                 + f"Popped track: {ptrack}\n")
 
-    # compare newTrack, oldTrack with popped track...
-    if pTrack.data == oldTrack.data:
-        if (not_scrobbled_already(oldTrack.data.artist, oldTrack.data.title,
-                oldTrack.time.timeStamp, oldTrack.data.duration, network) and
-                long_enough_to_scrobble(oldTrack.data.duration, newTrack.time.timeStamp,
-                pTrack.time.timeStamp) and
-                track_not_stale(pTrack, newTrack)):
-            scrobble_track(oldTrack, network)
+    # compare new_track, old_track with popped track...
+    if ptrack.data == old_track.data:
+        if (not_scrobbled_already(old_track.data.artist, old_track.data.title,
+                old_track.time.time_stamp, old_track.data.duration, network) and
+                long_enough_to_scrobble(old_track.data.duration,
+                new_track.time.time_stamp, ptrack.time.time_stamp) and
+                track_not_stale(ptrack, new_track)):
+            scrobble_track(old_track, network)
 
-    if pTrack.data != newTrack.data: push_stack(newTrack)
+    if ptrack.data != new_track.data: push_stack(new_track)
 
     logging.info(f"---")
     stack.close()
 
 def scrobble_track(track, network):
-    ''' use pylast to scrobble easily with network.scrobble unless it's
-        a radio station in which case chosenByUser is set to 0 to indicate
-        the track was chosen, for example, by the radio station.
-        '''
+
+    '''Scrobble track based on source - stream or local file.
+
+       Use pylast to scrobble easily with network.scrobble unless it's
+       a radio station in which case chosenByUser is set to 0 to indicate
+       the track was chosen, for example, by the radio station.
+    '''
 
     if track.data.artist == None or '[unknown]' in track.data.artist:
         logging.info(f"No scrobbling performed - unknown artist string\n")
         return
 
-    if ((next((True for s in SUFFIX_LIST if track.data.contentId[-len(s):] == s), False) and
-            track.data.title[0:4] != 'http') or int(track.state.mediaTrack) > 0):
-        #scrobble with pylast
+    if ((next((True for s in SUFFIX_LIST
+               if track.data.content_id[-len(s):] == s), False) and
+         track.data.title[0:4] != 'http') or int(track.state.media_track) > 0):
+
+        # scrobble with pylast
         network.scrobble(artist=track.data.artist, title=track.data.title,
-            timestamp=track.time.timeStamp)
+            timestamp=track.time.time_stamp)
         scrobble_result = "scrobble implicit"
     else:
-        #scrobble with lfm direct api in order to set chosenByUser to 0
-        params=[('api_key', API_KEY), ('artist', track.data.artist), ('track', track.data.title),
-            ('method', 'track.scrobble'), ('sk', SESSION_KEY),
-            ('timestamp', str(track.time.timeStamp)), ('chosenByUser', '0')]
+
+        # crobble with lfm direct api in order to set chosenByUser to 0
+        params=[('api_key', API_KEY), ('artist', track.data.artist),
+                ('track', track.data.title), ('method', 'track.scrobble'),
+                ('sk', SESSION_KEY), ('timestamp', str(track.time.time_stamp)),
+                ('chosenByUser', '0')]
         sorted_params = sorted(params, key=lambda x: x[0])
         api_sig=''.join('%s' % ''.join(p) for p in sorted_params) + API_SECRET
         api_sig = pylast.md5(api_sig)
@@ -133,77 +141,92 @@ def scrobble_track(track, network):
         else:
             scrobble_result = "scrobble not accepted"
 
-    logging.info(f"Popped track == oldTrack & duration longer than 30 seconds"
+    logging.info(f"Popped track == old_track & duration longer than 30 seconds"
          + f"and played ≥ half its duration or its longer than 4 minutes - "
-         + f"scrobbling oldTrack: {track}\n{scrobble_result}\n")
+         + f"scrobbling old_track: {track}\n{scrobble_result}\n")
     return
 
 def not_scrobbled_already(artist, title, timestamp, duration, network):
-    '''check to determine if track has already been scrobbled to avoid
-       duplicate scrobbles.
 
-       check for any scrobbles in the last x minutes where
-       x is the minimum of twice the duration or 15 minutes...
-       '''
+    '''check to o avoid duplicate scrobbles.
+
+    Check for any scrobbles in the last x minutes where
+    x is the minimum of twice the duration or 15 minutes...
+    '''
 
     user=network.get_user(username=USER_NAME)
     t=user.get_recent_tracks(limit=3)
     for item in iter(t):
-        track, album, date, time = item #unpack item tuple & track is a pylast named tuple
-        #sometimes the srobbled tracks don't keep corrections made
+        track, album, date, time = item # track is a pylast named tuple
+
+        # sometimes the srobbled tracks don't keep corrections made
         track.artist.name = track.artist.get_correction()
         track.title = track.get_correction()
-        diff = timestamp - float(time) #only needed with below logging
-        logging.info(f"track.artist.name = {track.artist.name}, Popped artist = {artist},"
-                 + f" track.title = {track.title}, Popped title = {title}, time = {time},"
-                 + f" timestamp = {timestamp}, timestamp - time = {diff}\n")
+        diff = timestamp - float(time) # only needed with below logging
+        logging.info(f"track.artist.name = {track.artist.name}, "
+                 + f"Popped artist = {artist},"
+                 + f" track.title = {track.title}, Popped title = {title}, "
+                 + f"time = {time}, timestamp = {timestamp}, "
+                 + f"timestamp - time = {diff}\n")
         if (track.artist.name == artist and track.title == title and
-                abs(int(timestamp) - int(time)) < min(duration*2 if duration > 0 else 900, 900)):
-            logging.info(f"Already scrobbled - artist: {artist}, title: {title},"
-                     + f" timestamp: {timestamp}\n")
+                (abs(int(timestamp) - int(time))
+                    < min(duration*2 if duration > 0 else 900, 900))):
+            logging.info(f"Already scrobbled - artist: {artist}, "
+                     + f"title: {title}, timestamp: {timestamp}\n")
             return False
     return True
 
 def long_enough_to_scrobble(old_duration, new_timestamp, p_timestamp):
-    '''Ensure track is at least 30 seconds long or has played at least half
-       of it's duration or 240 seconds in order to scrobble it.
-       '''
+
+    '''Check to ensure track has played long enough before scrobbling.
+
+    Ensure track is at least 30 seconds long or has played at least half
+    of it's duration or 240 seconds in order to scrobble it.
+    '''
 
     if ((int(old_duration) > 30 and (int(new_timestamp) - int(p_timestamp)) >
-            (int(old_duration)/2)) or (int(new_timestamp) - int(p_timestamp)) > 240):
+            (int(old_duration)/2)) or
+            (int(new_timestamp) - int(p_timestamp)) > 240):
         return True
     return False
 
-def track_not_stale(pTrack, newTrack):
+def track_not_stale(ptrack, new_track):
+
     '''Check if popped track is stale and needs to be replaced.'''
 
-    if newTrack.time.timeStamp > (pTrack.time.timeStamp + pTrack.data.duration*2):
-        #popped track is stale
-        push_stack(newTrack)
+    if (new_track.time.time_stamp >
+            (ptrack.time.time_stamp + ptrack.data.duration*2)):
+
+        # popped track is stale
+        push_stack(new_track)
         return False
     return True
 
 def push_stack(trackToPush):
+
     '''Push track on stack file.'''
-    #logging.info(f"trackToPush: {trackToPush}\n")
+
     shutil.copy2(EMPTYFILE, STACKFILE)
     stack = open(STACKFILE,'r+')
-    json.dump({"data": trackToPush.data.__dict__, "time": trackToPush.time.__dict__,
+    json.dump({"data": trackToPush.data.__dict__,
+               "time": trackToPush.time.__dict__,
                "state": trackToPush.state.__dict__}, stack)
     stack.close()
 
-
 class event:
-    '''A class to parse media player event data originating
-       from homeassistant media_player events.
-       '''
+
+    '''Homeassistant Media Event Class.
+
+    A class to parse media player event data originating
+    from homeassistant media_player events.
+    '''
 
     def __init__(self, media, state, network):
         self.media = media
         self.state = state
         self.network = network
         try:
-            self.event = self.media_player_event(self.media, self.state)
+            self.event = self.__media_player_event(self.media, self.state)
             self.track_data = self.event['data']
             self.track_time = self.event['time']
             self.playing_state = self.event['state']
@@ -211,42 +234,46 @@ class event:
             logging.error(f"bad event data supplied, terminating\n{media}\n")
             sys.exit(1)
 
-    def media_player_event(self, media, state):
-        #need to return parsed event info:
+    def __media_player_event(self, media, state):
+
+        '''Parse media player event data to dictionary.'''
+
         e = {}
         d = {}
         try:
-            mediaTitle = json.loads(media)[state+'_state']['media_title']
+            media_title = json.loads(media)[state+'_state']['media_title']
         except:
-            mediaTitle = ""
+            media_title = ""
         try:
-            mediaArtist = json.loads(media)[state+'_state']['media_artist']
+            media_artist = json.loads(media)[state+'_state']['media_artist']
         except KeyError:
-            mediaArtist = ""
+            media_artist = ""
         except:
-            mediaArtist = ""
+            media_artist = ""
         try:
-            mediaContentType = json.loads(media)[state+'_state']['media_content_type']
+            media_content_type = (json.loads(media)
+                [state+'_state']['media_content_type'])
         except:
-            mediaContentType = ""
+            media_content_type = ""
         try:
-            mediaDuration = json.loads(media)[state+'_state']['media_duration']
+            media_duration = json.loads(media)[state+'_state']['media_duration']
         except:
-            mediaDuration = 0
+            media_duration = 0
         try:
-            timeStamp = (datetime.datetime.strptime(json.loads(
+            time_stamp = (datetime.datetime.strptime(json.loads(
                 media)['time_'+state], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp())
         except:
-            timeStamp = 0
+            time_stamp = 0
         try:
-            mediaContentId = str(json.loads(media)[state+'_state']['media_content_id'])
+            media_content_id = str(json.loads(media)
+                [state+'_state']['media_content_id'])
         except:
-            mediaContentId = ""
+            media_content_id = ""
         try:
-            mediaTrack = str(json.loads(media)[state+'_state']['media_track'])
-            if mediaTrack == "": mediaTrack = 0
+            media_track = str(json.loads(media)[state+'_state']['media_track'])
+            if media_track == "": media_track = 0
         except:
-            mediaTrack = -1
+            media_track = -1
         try:
             playing_state = str(json.loads(media)['state_'+state])
         except:
@@ -260,17 +287,19 @@ class event:
             if sonos: player="sonos"
         except:
             sonos = ""
-        d = {"artist": mediaArtist,
-             "title": mediaTitle,
-             "duration": mediaDuration,
-             "contentId": mediaContentId,
-             "contentType": mediaContentType}
-        eTime = {"timeStamp":timeStamp}
-        eState = {"state": playing_state, "mediaTrack": mediaTrack, "player": player}
-        e = {"data": d, "time": eTime, "state": eState}
+        d = {"artist": media_artist,
+             "title": media_title,
+             "duration": media_duration,
+             "content_id": media_content_id,
+             "content_type": media_content_type}
+        e_time = {"time_stamp":time_stamp}
+        e_state = {"state": playing_state, "media_track": media_track,
+                  "player": player}
+        e = {"data": d, "time": e_time, "state": e_state}
         return e
 
     def get_event_info(self):
+
         '''Return class media player event data.'''
 
         return (SimpleNamespace(**self.track_data),
@@ -278,6 +307,7 @@ class event:
                 SimpleNamespace(**self.track_time))
 
     def get_missing_track_info(self):
+
         '''Identify artist, track title, and track duration from lastFM.'''
 
         ev = SimpleNamespace(**self.track_data)
@@ -289,39 +319,54 @@ class event:
         # parse artist, title from event data
         track.artist, track.title = self.__parse_event(ev, track, state)
 
-        #get lastFM track data & correct it (normalized artist and title)
+        # get lastFM track data & correct it (normalized artist and title)
         lfmTrack = self.network.get_track(track.artist, track.title)
         track.artist = lfmTrack.artist.name = lfmTrack.artist.get_correction()
-        lfmTrack.title = self.__get_local_correction(lfmTrack.title, track.artist)
+        lfmTrack.title = self.__get_local_correction(lfmTrack.title,
+                         track.artist)
         track.title = lfmTrack.title = lfmTrack.get_correction()
-        track.duration = self.__local_get_duration(track, lfmTrack, self.network)
+        track.duration = self.__local_get_duration(track, lfmTrack,
+                         self.network)
 
         # a local attempt of lfm's track.getSimilar - removes string enclosed
         # with [] or () preceeded by space from end of title. track.getSimilar
         # doesn't seem to id these as similar, e.g., ' (Album Version)'
         if track.duration == 0:
-            track.title = lfmTrack.title = re.sub(r' [\(\[][ \w]+[\]\)]$', '', track.title)
-            track.duration = self.__local_get_duration(track, lfmTrack, self.network)
+            track.title = lfmTrack.title = re.sub(r' [\(\[][ \w]+[\]\)]$',
+                          '', track.title)
+            track.duration = self.__local_get_duration(track,
+                             lfmTrack, self.network)
 
         tck['data'] = SimpleNamespace(artist=track.artist, title=track.title,
-            duration=int(track.duration), contentId=ev.contentId, contentType=ev.contentType)
-        tck['time'] = SimpleNamespace(timeStamp=time.timeStamp)
+            duration=int(track.duration), content_id=ev.content_id,
+            content_type=ev.content_type)
+        tck['time'] = SimpleNamespace(time_stamp=time.time_stamp)
         tck['state'] = SimpleNamespace(state=state.state,
-            mediaTrack=state.mediaTrack, player=state.player)
+            media_track=state.media_track, player=state.player)
         return SimpleNamespace(**tck)
 
     def __parse_event(self, ev, track, state):
-        if ev.artist == "" and ev.contentId[0:4] == 'http':
+
+        '''Parse or obtain track and title from event data.
+
+        Some streams combine artist and title into title field - other streams
+        and local files cleanly place artist and title into their distinct
+        fields.
+        '''
+
+        if ev.artist == "" and ev.content_id[0:4] == 'http':
             # its a radio station played from mpd -
             # parse title and artist from title string
             if ev.title.find(": ") == -1:
                 track.artist, track.title = self.__parse_title(ev.title)
             elif ev.title.find(": ") > 0:
-                streamNameEnd = ev.title.find(": ")
-                track.artist, track.title = self.__parse_title(ev.title[streamNameEnd+2:])
-        elif (int(state.mediaTrack) >= 0 or
-                next((True for s in SUFFIX_LIST if ev.contentId[-len(s):] == s), False) or
-                int(state.mediaTrack) == -1 and state.player == "sonos"):
+                stream_name_end = ev.title.find(": ")
+                track.artist, track.title = self.__parse_title(
+                    ev.title[stream_name_end+2:])
+        elif (int(state.media_track) >= 0 or
+                next((True for s in SUFFIX_LIST
+                      if ev.content_id[-len(s):] == s), False) or
+                int(state.media_track) == -1 and state.player == "sonos"):
             # it's a radio station from forked_daapd_server and they identify
             # artist & title or its a file from library - in either case no
             # parsing required, both are directly available from event
@@ -330,22 +375,26 @@ class event:
         return track.artist, track.title
 
     def __parse_title(self, title):
+
         '''Parse title from combined artist title string separated by "-".'''
-        artistEnd = title.find(" - ")
-        artist = title[0:artistEnd]
-        title = title[artistEnd+3:]
+
+        artist_end = title.find(" - ")
+        artist = title[0:artist_end]
+        title = title[artist_end+3:]
         return artist, title
 
     def __get_local_correction(self, title, artist):
+
         '''apply local title corrections that lfm may not process.
 
-           if title is of form "artist - title", then this strips off "artist - "
-           and then also finds any station appended strings at the  end of title
-           like "[2iQi]"'''
+        if title is of form "artist - title", then this strips off "artist - "
+        and then also finds any station appended strings at the  end of title
+        like "[2iQi]"
+        '''
 
-        artistEnd = title.find(" - ")
-        title = (title[artistEnd+3:]
-                 if artistEnd > 0 and title[0:artistEnd] == artist else title)
+        artist_end = title.find(" - ")
+        title = (title[artist_end+3:]
+                 if artist_end > 0 and title[0:artist_end] == artist else title)
         title = re.sub(' $', '', title)
         suffix = re.search(r' \[\w+\]$', title)
         try:
@@ -355,8 +404,12 @@ class event:
             return title
 
     def __local_get_duration(self, track, lfmTrack, network):
-        '''get duration from lfm - if 0, search through all combinations
-           of lfm title/artist tracks for non-zero durations - pick largest.'''
+
+        '''get duration from lastfm.
+
+        if get_duration returns 0, search through all combinations
+        of lfm title/artist tracks for non-zero durations - pick largest.
+        '''
 
         try:
             track.duration = lfmTrack.get_duration()/1000
@@ -364,17 +417,19 @@ class event:
             track.duration = 0
         else:
             if track.duration == 0:
-                # search through all releases of track.title by track.artist for
-                # non-zero durations pick the longest.. otherwise duration = zero
-                foundTracks = network.search_for_track(track.artist,
+                # search through all releases of track.title by
+                # track.artist for non-zero durations pick the longest..
+                # otherwise duration = zero
+                found_tracks = network.search_for_track(track.artist,
                     track.title).get_next_page()
                 try:
-                    _tracks = (tk for tk in foundTracks if tk.get_duration() > 0)
-                    _longestTrack = max(_tracks, key=lambda x: x.get_duration())
+                    _tracks = (tk for tk in found_tracks
+                               if tk.get_duration() > 0)
+                    _longest = max(_tracks, key=lambda x: x.get_duration())
                 except:
                     track.duration = 0
                 else:
-                    track.duration = _longestTrack.get_duration()/1000
+                    track.duration = _longest.get_duration()/1000
         return track.duration
 
 if __name__ == '__main__':
