@@ -322,11 +322,12 @@ class event:
         # get lastFM track data & correct it (normalized artist and title)
         lfmTrack = self.network.get_track(track.artist, track.title)
         track.artist = lfmTrack.artist.name = lfmTrack.artist.get_correction()
-        lfmTrack.title = self.__get_local_correction(lfmTrack.title,
+        lfmTrack.title = self.__local_get_correction(lfmTrack.title,
                          track.artist)
         track.title = lfmTrack.title = lfmTrack.get_correction()
-        track.duration = self.__local_get_duration(track, lfmTrack,
-                         self.network)
+        track.duration = (int(ev.duration) if int(ev.duration) > 0 else
+                          self.__local_get_duration(track, lfmTrack,
+                              self.network))
 
         # a local attempt of lfm's track.getSimilar - removes string enclosed
         # with [] or () preceeded by space from end of title. track.getSimilar
@@ -383,7 +384,7 @@ class event:
         title = title[artist_end+3:]
         return artist, title
 
-    def __get_local_correction(self, title, artist):
+    def __local_get_correction(self, title, artist):
 
         '''apply local title corrections that lfm may not process.
 
