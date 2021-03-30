@@ -49,7 +49,7 @@ def main():
 
     # parse event data from both old and new events captured
     # event data may not have all of the details which will
-    # be resolved in next outside_temp
+    # be resolved in .get_missing_track_info() calls below
     new = event(media_json,'new', network)
     new_data, new_state, new_time = new.get_event_info()
     old = event(media_json,'old', network)
