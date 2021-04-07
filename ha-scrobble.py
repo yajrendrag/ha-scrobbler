@@ -124,7 +124,7 @@ def scrobble_track(track, network):
         scrobble_result = "scrobble implicit"
     else:
 
-        # crobble with lfm direct api in order to set chosenByUser to 0
+        # scrobble with lfm direct api in order to set chosenByUser to 0
         params=[('api_key', API_KEY), ('artist', track.data.artist),
                 ('track', track.data.title), ('method', 'track.scrobble'),
                 ('sk', SESSION_KEY), ('timestamp', str(track.time.time_stamp)),

@@ -12,7 +12,7 @@
 - `cd ha-scrobble`
 - `touch ./ha-scrobble.log`
 - `touch ./stackfile.txt`
-- move processmpd.sh to your shell_commands directory, e.g., `mv processmpd ../.homeassistant/shell_commands`
+- move processmpd.sh to your shell_commands directory, e.g., `mv processmpd.sh ../.homeassistant/shell_commands`
 - edit ha-scrobble.py and set the Last.fm account constants and other globals - see hascrobblermd/full-readme for details.  Also set the python shebang string (line 1) to the python environment/command you wish to use.
 - install requirements.txt to your chosen python environment
 - add a yaml automation (see media_automation.yaml in repo) - see full-readme/full-readme.md for details or for Node-RED flow alternative
